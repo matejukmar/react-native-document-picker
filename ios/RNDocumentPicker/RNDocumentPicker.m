@@ -42,27 +42,35 @@ RCT_EXPORT_METHOD(show:(NSDictionary *)options
                   callback:(RCTResponseSenderBlock)callback) {
 
     NSArray *allowedUTIs = [RCTConvert NSArray:options[@"filetype"]];
-    UIDocumentMenuViewController *documentPicker = [[UIDocumentMenuViewController alloc] initWithDocumentTypes:(NSArray *)allowedUTIs inMode:UIDocumentPickerModeImport];
+	[composeCallbacks addObject:callback];
+	
+	UIViewController *vc = nil;
 
-    [composeCallbacks addObject:callback];
-
-
-    documentPicker.delegate = self;
-    documentPicker.modalPresentationStyle = UIModalPresentationFormSheet;
+	if (@available(iOS 11.0, *)) {
+		UIDocumentPickerViewController *documentPicker = [[UIDocumentPickerViewController alloc] initWithDocumentTypes:(NSArray*)allowedUTIs inMode:UIDocumentPickerModeImport];
+		documentPicker.delegate = self;
+		vc = documentPicker;
+	} else {
+		UIDocumentMenuViewController *documentPicker = [[UIDocumentMenuViewController alloc] initWithDocumentTypes:(NSArray *)allowedUTIs inMode:UIDocumentPickerModeImport];
+		documentPicker.delegate = self;
+		vc = documentPicker;
+	}
+	
 
     UIViewController *rootViewController = [[[[UIApplication sharedApplication]delegate] window] rootViewController];
-    while (rootViewController.modalViewController) {
-        rootViewController = rootViewController.modalViewController;
+    while (rootViewController.presentedViewController) {
+        rootViewController = rootViewController.presentedViewController;
     }
 
     if ( IDIOM == IPAD ) {
         NSNumber *top = [RCTConvert NSNumber:options[@"top"]];
         NSNumber *left = [RCTConvert NSNumber:options[@"left"]];
-        [documentPicker.popoverPresentationController setSourceRect: CGRectMake([left floatValue], [top floatValue], 0, 0)];
-        [documentPicker.popoverPresentationController setSourceView: rootViewController.view];
+        [vc.popoverPresentationController setSourceRect: CGRectMake([left floatValue], [top floatValue], 0, 0)];
+        [vc.popoverPresentationController setSourceView: rootViewController.view];
     }
 
-    [rootViewController presentViewController:documentPicker animated:YES completion:nil];
+	vc.modalPresentationStyle = UIModalPresentationFormSheet;
+    [rootViewController presentViewController:vc animated:YES completion:nil];
 }
 
 
@@ -72,8 +80,8 @@ RCT_EXPORT_METHOD(show:(NSDictionary *)options
 
     UIViewController *rootViewController = [[[[UIApplication sharedApplication]delegate] window] rootViewController];
     
-    while (rootViewController.modalViewController) {
-        rootViewController = rootViewController.modalViewController;
+    while (rootViewController.presentedViewController) {
+        rootViewController = rootViewController.presentedViewController;
     }
     if ( IDIOM == IPAD ) {
         [documentPicker.popoverPresentationController setSourceRect: CGRectMake(rootViewController.view.frame.size.width/2, rootViewController.view.frame.size.height - rootViewController.view.frame.size.height / 6, 0, 0)];
@@ -113,5 +121,7 @@ RCT_EXPORT_METHOD(show:(NSDictionary *)options
         [url stopAccessingSecurityScopedResource];
     }
 }
+
+
 
 @end
